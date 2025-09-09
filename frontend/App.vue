@@ -261,35 +261,28 @@ const saveFile = async () => {
   }
 }
 
-const runLitex = async (code) => {
-    try {
-        const response = await fetch("https://litexlang.org/api/litex", {
-            "method": "POST",
-            "body": JSON.stringify({
-                "targetFormat": "Run Litex",
-                "litexString": code
-            })
-        })
-        if (!response.ok) {
-            return "Network Error: " + response.statusText
-        }
-        const data = await response.json()
-        return data.data
-    } catch (error) {
-        return "Error: " + error.message
-    }
-}
-
 // 运行代码 - 留给你自己实现
 const runCode = async () => {
   if (editor && currentFile.value) {
     const content = editor.getValue()
-    // console.log('运行代码:', content)
-    const response = await runLitex(content)
     
-    // 这里留给你自己实现运行逻辑
-    // 你可以调用后端API或者在前端执行代码
-    output.value += `\n[${new Date().toLocaleTimeString()}] 运行 ${currentFile.value.title}:\n${response}\n`
+    output.value += `\n[${new Date().toLocaleTimeString()}] 开始运行 ${currentFile.value.title}\n`
+
+    try {
+      // 调用后端 API 运行代码
+      const response = await apiCall('/run-litex', {
+        method: 'POST',
+        body: JSON.stringify({ code: content })
+      })
+
+      if (response.result.endsWith("Success! :)\n\n")) {
+        response.result = "Success! :)";
+      }
+      
+      output.value += `\n[${new Date().toLocaleTimeString()}] 运行 ${currentFile.value.title}:\n${response.result}\n`
+    } catch (error) {
+      output.value += `\n[${new Date().toLocaleTimeString()}] 运行失败: ${error.message}\n`
+    }
   }
 }
 

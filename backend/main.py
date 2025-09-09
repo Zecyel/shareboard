@@ -9,6 +9,7 @@ import asyncio
 import threading
 import tempfile
 import shutil
+import requests
 
 app = FastAPI(title="Shareboard API", description="API for shared document management")
 
@@ -44,6 +45,12 @@ class DocumentCreate(BaseModel):
 class DocumentUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+
+class LitexCodeRequest(BaseModel):
+    code: str
+
+class LitexCodeResponse(BaseModel):
+    result: str
 
 # 文件存储配置
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -291,6 +298,28 @@ async def delete_document(document_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"message": "Document deleted successfully"}
+
+@app.post("/api/run-litex", response_model=LitexCodeResponse)
+async def run_litex_code(request: LitexCodeRequest):
+    """运行 Litex 代码"""
+    try:
+        response = await asyncio.to_thread(
+            requests.post,
+            "https://litexlang.org/api/litex",
+            json={
+                "targetFormat": "Run Litex",
+                "litexString": request.code
+            }
+        )
+        
+        if not response.ok:
+            return LitexCodeResponse(result=f"Network Error: {response.status_text}")
+        
+        data = response.json()
+        return LitexCodeResponse(result=data.get("data", "No result"))
+        
+    except Exception as error:
+        return LitexCodeResponse(result=f"Error: {str(error)}")
 
 if __name__ == "__main__":
     import uvicorn
