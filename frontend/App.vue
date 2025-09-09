@@ -13,8 +13,7 @@
           :class="['file-item', { active: currentFileId === file.id }]"
           @click="selectFile(file.id)"
         >
-          <span class="file-name">{{ file.name }}</span>
-          <button @click.stop="deleteFile(file.id)" class="delete-btn">×</button>
+          <span class="file-name">{{ file.title }}</span>
         </div>
       </div>
     </div>
@@ -56,12 +55,12 @@
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import * as monaco from 'monaco-editor'
 
+// API基础URL
+const API_BASE_URL = 'http://localhost:8000/api'
+
 // 响应式数据
-const files = ref([
-  { id: 1, name: 'main.py', content: 'print("Hello, World!")' },
-  { id: 2, name: 'script.js', content: 'console.log("Hello from JavaScript!");' }
-])
-const currentFileId = ref(1)
+const files = ref([])
+const currentFileId = ref(null)
 const output = ref('')
 const monacoEditor = ref(null)
 let editor = null
@@ -71,48 +70,108 @@ const currentFile = computed(() => {
   return files.value.find(file => file.id === currentFileId.value)
 })
 
+// API调用函数
+const apiCall = async (url, options = {}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('API调用失败:', error)
+    output.value += `\n[${new Date().toLocaleTimeString()}] API错误: ${error.message}\n`
+    throw error
+  }
+}
+
+// 加载所有文档
+const loadDocuments = async () => {
+  try {
+    const documents = await apiCall('/documents')
+    files.value = documents
+    if (documents.length > 0 && !currentFileId.value) {
+      currentFileId.value = documents[0].id
+    }
+  } catch (error) {
+    console.error('加载文档失败:', error)
+  }
+}
+
+// 创建新文档
+const createDocument = async (title, content = '') => {
+  try {
+    const newDoc = await apiCall('/documents', {
+      method: 'POST',
+      body: JSON.stringify({ title, content })
+    })
+    files.value.push(newDoc)
+    return newDoc
+  } catch (error) {
+    console.error('创建文档失败:', error)
+    return null
+  }
+}
+
+// 更新文档
+const updateDocument = async (id, updates) => {
+  try {
+    const updatedDoc = await apiCall(`/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    })
+    
+    const index = files.value.findIndex(f => f.id === id)
+    if (index !== -1) {
+      files.value[index] = updatedDoc
+    }
+    return updatedDoc
+  } catch (error) {
+    console.error('更新文档失败:', error)
+    return null
+  }
+}
+
 // 选择文件
 const selectFile = (fileId) => {
   currentFileId.value = fileId
-  if (editor) {
+  if (editor && currentFile.value) {
     editor.setValue(currentFile.value.content)
   }
 }
 
 // 添加新文件
-const addNewFile = () => {
-  const newId = Math.max(...files.value.map(f => f.id)) + 1
-  const newFile = {
-    id: newId,
-    name: `file${newId}.py`,
-    content: '# 新文件\nprint("Hello!")'
-  }
-  files.value.push(newFile)
-  selectFile(newId)
-}
-
-// 删除文件
-const deleteFile = (fileId) => {
-  if (files.value.length <= 1) {
-    alert('至少需要保留一个文件')
-    return
-  }
-  
-  const index = files.value.findIndex(f => f.id === fileId)
-  files.value.splice(index, 1)
-  
-  if (currentFileId.value === fileId) {
-    currentFileId.value = files.value[0].id
+const addNewFile = async () => {
+  const newId = Math.max(...files.value.map(f => parseInt(f.id) || 0)) + 1
+  const newFile = await createDocument(`file${newId}.py`, '# Here to write your code')
+  if (newFile) {
+    selectFile(newFile.id)
   }
 }
 
 // 保存文件
-const saveFile = () => {
+const saveFile = async () => {
   if (editor && currentFile.value) {
     const content = editor.getValue()
-    currentFile.value.content = content
-    console.log('文件已保存:', currentFile.value.name)
-    // 这里可以添加实际的保存逻辑，比如发送到后端
+    const title = currentFile.value.title
+    
+    const updatedDoc = await updateDocument(currentFile.value.id, {
+      title,
+      content
+    })
+    
+    if (updatedDoc) {
+      console.log('文件已保存:', title)
+      output.value += `\n[${new Date().toLocaleTimeString()}] 文件已保存: ${title}\n`
+    }
   }
 }
 
@@ -124,7 +183,7 @@ const runCode = () => {
     
     // 这里留给你自己实现运行逻辑
     // 你可以调用后端API或者在前端执行代码
-    output.value += `\n[${new Date().toLocaleTimeString()}] 运行 ${currentFile.value.name}:\n${content}\n`
+    output.value += `\n[${new Date().toLocaleTimeString()}] 运行 ${currentFile.value.title}:\n${content}\n`
   }
 }
 
@@ -163,8 +222,9 @@ watch(currentFileId, () => {
 })
 
 // 组件挂载后初始化
-onMounted(() => {
-  initMonaco()
+onMounted(async () => {
+  await loadDocuments()
+  await initMonaco()
 })
 </script>
 
@@ -238,24 +298,6 @@ onMounted(() => {
 
 .file-name {
   font-size: 13px;
-}
-
-.delete-btn {
-  background: none;
-  border: none;
-  color: #cccccc;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.delete-btn:hover {
-  color: #ff6b6b;
 }
 
 /* 中间面板 */

@@ -8,8 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "monaco-editor": "^0.45.0"
+    "axios": "^1.11.0",
+    "monaco-editor": "^0.45.0",
+    "vue": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
