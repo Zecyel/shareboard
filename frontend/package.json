@@ -1,5 +1,5 @@
 {
-  "name": "shareboard-frontend",
+  "name": "frontend",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -8,17 +8,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.3.4",
-    "axios": "^1.6.0",
-    "@monaco-editor/loader": "^1.4.0",
-    "monaco-editor": "^0.44.0"
+    "vue": "^3.4.0",
+    "monaco-editor": "^0.45.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.4.0",
-    "vite": "^4.4.5"
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.0"
   },
-  "keywords": ["vue", "monaco-editor", "shared-documents"],
+  "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Frontend for Shareboard - A shared document platform"
+  "description": ""
 }
