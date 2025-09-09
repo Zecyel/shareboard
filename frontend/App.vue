@@ -4,7 +4,10 @@
     <div class="left-panel">
       <div class="panel-header">
         <h3>文件列表</h3>
-        <button @click="addNewFile" class="add-btn">+ 新建</button>
+        <div class="header-buttons">
+          <button @click="refreshFileList" class="refresh-btn" title="刷新文件列表">🔄</button>
+          <button @click="addNewFile" class="add-btn">+ 新建</button>
+        </div>
       </div>
       <div class="file-list">
         <div 
@@ -19,7 +22,7 @@
     </div>
 
     <!-- 中间Monaco编辑器 -->
-    <div class="center-panel">
+    <div class="center-panel" style="padding-top: 10px;">
       <div class="editor-container">
         <div ref="monacoEditor" class="monaco-editor"></div>
       </div>
@@ -29,6 +32,7 @@
     <div class="right-panel">
       <div class="panel-header">
         <h3>操作</h3>
+        <button @click="refreshCurrentFile" class="refresh-btn" title="刷新当前文件">🔄</button>
       </div>
       
       <!-- 操作按钮 -->
@@ -48,6 +52,29 @@
         </div>
       </div>
     </div>
+
+    <!-- 文件名输入弹窗 -->
+    <div v-if="showFileNameDialog" class="modal-overlay" @click="closeFileNameDialog">
+      <div class="modal-content" @click.stop>
+        <h3>创建新文件</h3>
+        <div class="input-group">
+          <label for="fileName">文件名:</label>
+          <input 
+            id="fileName"
+            v-model="newFileName" 
+            type="text" 
+            placeholder="请输入文件名"
+            @keyup.enter="confirmCreateFile"
+            ref="fileNameInput"
+          />
+          <span class="file-extension">.lix</span>
+        </div>
+        <div class="modal-buttons">
+          <button @click="closeFileNameDialog" class="cancel-btn">取消</button>
+          <button @click="confirmCreateFile" class="confirm-btn">创建</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -64,6 +91,11 @@ const currentFileId = ref(null)
 const output = ref('')
 const monacoEditor = ref(null)
 let editor = null
+
+// 文件名弹窗相关
+const showFileNameDialog = ref(false)
+const newFileName = ref('')
+const fileNameInput = ref(null)
 
 // 获取当前文件
 const currentFile = computed(() => {
@@ -148,12 +180,66 @@ const selectFile = (fileId) => {
   }
 }
 
-// 添加新文件
-const addNewFile = async () => {
-  const newId = Math.max(...files.value.map(f => parseInt(f.id) || 0)) + 1
-  const newFile = await createDocument(`file${newId}.py`, '# Here to write your code')
+// 刷新文件列表
+const refreshFileList = async () => {
+  try {
+    await loadDocuments()
+    output.value += `\n[${new Date().toLocaleTimeString()}] 文件列表已刷新\n`
+  } catch (error) {
+    console.error('刷新文件列表失败:', error)
+  }
+}
+
+// 刷新当前文件
+const refreshCurrentFile = async () => {
+  if (currentFile.value) {
+    try {
+      const updatedDoc = await apiCall(`/documents/${currentFile.value.id}`)
+      const index = files.value.findIndex(f => f.id === currentFile.value.id)
+      if (index !== -1) {
+        files.value[index] = updatedDoc
+        if (editor) {
+          editor.setValue(updatedDoc.content)
+        }
+      }
+      output.value += `\n[${new Date().toLocaleTimeString()}] 文件已刷新: ${currentFile.value.title}\n`
+    } catch (error) {
+      console.error('刷新文件失败:', error)
+    }
+  }
+}
+
+// 打开文件名输入弹窗
+const addNewFile = () => {
+  newFileName.value = ''
+  showFileNameDialog.value = true
+  nextTick(() => {
+    if (fileNameInput.value) {
+      fileNameInput.value.focus()
+    }
+  })
+}
+
+// 关闭文件名输入弹窗
+const closeFileNameDialog = () => {
+  showFileNameDialog.value = false
+  newFileName.value = ''
+}
+
+// 确认创建文件
+const confirmCreateFile = async () => {
+  if (!newFileName.value.trim()) {
+    alert('请输入文件名')
+    return
+  }
+  
+  const fileName = newFileName.value.trim()
+  const fullFileName = fileName.endsWith('.lix') ? fileName : `${fileName}.lix`
+  
+  const newFile = await createDocument(fullFileName, '# Here to write your code')
   if (newFile) {
     selectFile(newFile.id)
+    closeFileNameDialog()
   }
 }
 
@@ -260,6 +346,12 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .add-btn {
   background-color: #0e639c;
   color: white;
@@ -272,6 +364,22 @@ onMounted(async () => {
 
 .add-btn:hover {
   background-color: #1177bb;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+  color: #ffffff;
+  background-color: #3e3e42;
 }
 
 .file-list {
@@ -397,6 +505,102 @@ onMounted(async () => {
   white-space: pre-wrap;
   word-wrap: break-word;
   min-height: 200px;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.modal-content h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #cccccc;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #0e639c;
+}
+
+.file-extension {
+  color: #888;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.confirm-btn {
+  background-color: #0e639c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.confirm-btn:hover {
+  background-color: #1177bb;
 }
 
 /* 滚动条样式 */
