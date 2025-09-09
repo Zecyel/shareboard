@@ -5,7 +5,7 @@
       <div class="panel-header">
         <h3>文件列表</h3>
         <div class="header-buttons">
-          <button @click="refreshFileList" class="refresh-btn" title="刷新文件列表">🔄</button>
+          <button @click="refreshFileList" class="refresh-btn" title="刷新文件列表">刷新文件列表</button>
           <button @click="addNewFile" class="add-btn">+ 新建</button>
         </div>
       </div>
@@ -22,7 +22,7 @@
     </div>
 
     <!-- 中间Monaco编辑器 -->
-    <div class="center-panel" style="padding-top: 10px;">
+    <div class="center-panel" style="padding-top: 10px; padding-bottom: 10px;">
       <div class="editor-container">
         <div ref="monacoEditor" class="monaco-editor"></div>
       </div>
@@ -32,7 +32,7 @@
     <div class="right-panel">
       <div class="panel-header">
         <h3>操作</h3>
-        <button @click="refreshCurrentFile" class="refresh-btn" title="刷新当前文件">🔄</button>
+        <button @click="refreshCurrentFile" class="refresh-btn" title="刷新当前文件">刷新当前文件</button>
       </div>
       
       <!-- 操作按钮 -->
@@ -285,7 +285,6 @@ const initMonaco = async () => {
   if (monacoEditor.value) {
     editor = monaco.editor.create(monacoEditor.value, {
       value: currentFile.value?.content || '',
-      language: 'python',
       theme: 'vs-dark',
       automaticLayout: true,
       fontSize: 14,
@@ -367,19 +366,17 @@ onMounted(async () => {
 }
 
 .refresh-btn {
-  background: none;
+  background-color: #0e639c;
+  color: white;
   border: none;
-  color: #cccccc;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 3px;
-  transition: all 0.2s;
+  cursor: pointer;
+  font-size: 12px;
 }
 
 .refresh-btn:hover {
-  color: #ffffff;
-  background-color: #3e3e42;
+  background-color: #1177bb;
 }
 
 .file-list {
