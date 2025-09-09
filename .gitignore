@@ -197,3 +197,4 @@ venv.bak/
 
 # Project specific
 backend/documents.json
+backend/backups/
