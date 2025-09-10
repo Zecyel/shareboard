@@ -1,0 +1,34 @@
+﻿services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/file:/app/file
+      - ./backend/backup:/app/backup
+      - ./backend/documents.json:/app/documents.json
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - shareboard-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    restart: unless-stopped
+    networks:
+      - shareboard-network
+
+networks:
+  shareboard-network:
+    driver: bridge
