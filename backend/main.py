@@ -10,6 +10,7 @@ import threading
 import tempfile
 import shutil
 import requests
+import pylitex
 
 app = FastAPI(title="Shareboard API", description="API for shared document management")
 
@@ -303,21 +304,8 @@ async def delete_document(document_id: str):
 async def run_litex_code(request: LitexCodeRequest):
     """运行 Litex 代码"""
     try:
-        response = await asyncio.to_thread(
-            requests.post,
-            "https://litexlang.org/api/litex",
-            json={
-                "targetFormat": "Run Litex",
-                "litexString": request.code
-            }
-        )
-        
-        if not response.ok:
-            return LitexCodeResponse(result=f"Network Error: {response.status_text}")
-        
-        data = response.json()
-        return LitexCodeResponse(result=data.get("data", "No result"))
-        
+        result = pylitex.run(request.code)
+        return LitexCodeResponse(result=result["message"])
     except Exception as error:
         return LitexCodeResponse(result=f"Error: {str(error)}")
 
