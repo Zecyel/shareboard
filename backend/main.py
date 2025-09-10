@@ -16,7 +16,7 @@ app = FastAPI(title="Shareboard API", description="API for shared document manag
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vue dev server ports
+    allow_origins=["http://localhost:3005"],  # Vue dev server ports
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -323,4 +323,4 @@ async def run_litex_code(request: LitexCodeRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8004)
