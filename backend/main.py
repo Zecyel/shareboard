@@ -17,7 +17,7 @@ app = FastAPI(title="Shareboard API", description="API for shared document manag
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3005", "http://litex.zecyel.xyz"],  # Vue dev server ports
+    allow_origins=["http://localhost:3005", "http://litex-backend.zecyel.xyz", "http://litex.zecyel.xyz"],  # Vue dev server ports
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
