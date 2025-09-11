@@ -83,7 +83,7 @@ import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import * as monaco from 'monaco-editor'
 
 // API基础URL
-const API_BASE_URL = 'http://localhost:8004/api'
+const API_BASE_URL = 'http://litex-backend.zecyel.xyz/api'
 
 // 响应式数据
 const files = ref([])
